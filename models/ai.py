@@ -123,7 +123,6 @@ class Agent(object):
                 y_down += GRID_SIZE
 
 
-
         food_right_up = 0
         border_right_up = 0
         self_right_up = 0
@@ -141,6 +140,23 @@ class Agent(object):
         border_left_down = 0
         self_left_down = 0
 
+        x_right_up = x_left_up = x_right_down = x_left_down = snake_x
+        y_right_up = y_left_up = y_right_down = y_left_down = snake_y
+        while Agent.in_bounds(x_right_up, x_left_up, x_right_down, x_left_down, y_right_up, y_left_up, y_right_down, y_left_down, width, height):
+
+            if Agent.in_bounds(x_right_up, y_right_up, width, height):
+                if food_right_up == 0 and (x_right_up, y_right_up) == food.position():
+                    pass
+
+            if Agent.in_bounds(x_left_up, y_left_up, width, height):
+                pass
+
+            if Agent.in_bounds(x_right_down, y_right_down, width, height):
+                pass
+
+            if Agent.in_bounds(x_left_down, y_left_down, width, height):
+                pass
+
         state = [
             food_right,
             food_up,
@@ -157,9 +173,17 @@ class Agent(object):
             border_right_up,
             border_left_up,
             border_right_down,
-            border_left_down
+            border_left_down,
+            self_right,
+            self_up,
+            self_left,
+            self_down,
+            self_right_up,
+            self_left_up,
+            self_right_down,
+            self_left_down
         ]
-        print(food_right, food_up, food_left, food_down)
+
         return state
 
 
