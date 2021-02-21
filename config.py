@@ -17,16 +17,19 @@ speed = 500
 is_human_playing = False
 training = True
 first_time_training = True
-display = False
+display = True
 load = False
 number_of_games = 340
 save_period = 20
 
 weights_path = '/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/weights4.h5'
-learning_rate = 0.0003
+learning_rate = 0.0005
 gamma = 0.9
-neurons_each_layer = (12, 100, 300, 100, 50)
+neurons_each_layer = (24, 16)
 batch_size = 1000
+
+reward_for_closer_to_food = 10
+reward_for_away_from_food = -5
 
 snake_color = (255, 255, 255)
 food_color = (255, 0, 0)

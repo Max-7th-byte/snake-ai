@@ -8,6 +8,8 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
 
+from config import reward_for_away_from_food, reward_for_closer_to_food, GRID_SIZE
+
 
 class Agent(object):
 
@@ -76,59 +78,99 @@ class Agent(object):
     @staticmethod
     def state(width, height, snake, food):
 
-        x, y = tuple(snake.head_pos())
+        food_x = food.position()[0]
+        food_y = food.position()[1]
 
-        danger_left = (x <= 0) or \
-                      ((x - 20, y) in snake.positions())
+        snake_x = snake.head_pos()[0]
+        snake_y = height - snake.head_pos()[1]
 
-        danger_front = (y <= 0) or \
-                       ((x, y - 20) in snake.positions())
+        food_right = food_x - snake_x if food_x - snake_x > 0 and food_y != snake_y else 0
+        food_up = snake_y - food_y if snake_y - food_y > 0 and food_x != snake_x else 0
+        food_left = snake_x - food_x if snake_x - food_x > 0 and food_y != snake_y else 0
+        food_down = food_y - snake_y if food_y - snake_y > 0 and food_x != snake_x else 0
 
-        danger_right = (x >= width - 20) or \
-                       ((x + 20, y) in snake.positions())
+        border_right = width - snake_x
+        border_up = snake_y
+        border_left = snake_x
+        border_down = height - snake_y
 
-        danger_down = (y >= height - 20) or \
-                      ((x, y + 20) in snake.positions())
+        self_right = 0
+        self_up = 0
+        self_left = 0
+        self_down = 0
+        x_right = x_left = x_up = x_down = snake_x
+        y_right = y_left = y_up = y_down = snake_y
+        while Agent.in_bounds(x_right, x_left, x_up, x_down, y_right, y_left, y_up, y_down, width, height):
 
-        food_left = food.position()[0] < x
+            if Agent.in_bounds(x_right, y_right, width, height):
+                if self_right == 0 and (x_right, y_right) in snake.positions()[1:]:
+                    self_right = x_right - snake_x
+                x_right += GRID_SIZE
 
-        food_right = food.position()[0] > x
+            if Agent.in_bounds(x_left, y_left, width, height):
+                if self_left == 0 and (x_left, y_left) in snake.positions()[1:]:
+                    self_left = snake_x - x_left
+                x_left -= GRID_SIZE
 
-        food_down = food.position()[1] > y
+            if Agent.in_bounds(x_up, y_up, width, height):
+                if self_up == 0 and (x_up, y_up) in snake.positions()[1:]:
+                    self_up = snake_y - y_up
+                y_up -= GRID_SIZE
 
-        food_front = food.position()[1] < y
+            if Agent.in_bounds(x_down, y_down, width, height):
+                if self_down == 0 and (x_down, y_down) in snake.positions()[1:]:
+                    self_down = y_down - snake_y
+                y_down += GRID_SIZE
+
+
+
+        food_right_up = 0
+        border_right_up = 0
+        self_right_up = 0
+
+
+        food_left_up = 0
+        border_left_up = 0
+        self_left_up = 0
+
+        food_right_down = 0
+        border_right_down = 0
+        self_right_down = 0
+
+        food_left_down = 0
+        border_left_down = 0
+        self_left_down = 0
 
         state = [
-            danger_left,
-            danger_right,
-            danger_front,
-            danger_down,
-
-            snake.moving_left,
-            snake.moving_right,
-            snake.moving_down,
-            snake.moving_up,
-
-            food_left,
             food_right,
+            food_up,
+            food_left,
             food_down,
-            food_front
+            food_right_up,
+            food_left_up,
+            food_right_down,
+            food_left_down,
+            border_right,
+            border_up,
+            border_left,
+            border_down,
+            border_right_up,
+            border_left_up,
+            border_right_down,
+            border_left_down
         ]
-
-        state = Agent.state_to_int(state)
-
+        print(food_right, food_up, food_left, food_down)
         return state
 
 
     @staticmethod
-    def state_to_int(state):
-        for i in state:
-            if state[i]:
-                state[i] = 1
-            else:
-                state[i] = 0
-        return np.asarray(state)
+    def in_bounds(x_right, x_left, x_up, x_down, y_right, y_left, y_up, y_down, width, height):
+        return Agent.in_bounds(x_right, y_right, width, height) or Agent.in_bounds(x_left, y_left, width, height) or \
+               Agent.in_bounds(x_up, y_up, width, height) or Agent.in_bounds(x_down, y_down, width, height)
 
+    @staticmethod
+    def in_bounds(x, y, width, height):
+        return 0 <= x <= width or 0 <= y <= height
 
     @staticmethod
     def reward(snake, food, height, prev_pos):
@@ -155,8 +197,10 @@ class Agent(object):
         c_next = np.sqrt(np.square(x) + np.square(y))
 
         action_value = c_prev - c_next
-        if action_value < 0:
-            action_value = -0.1
+        if action_value > 0:
+            action_value = reward_for_closer_to_food
+        else:
+            action_value = reward_for_away_from_food
 
         reward += action_value
         return reward

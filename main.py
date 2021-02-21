@@ -43,6 +43,7 @@ def display_main():
             clock.tick(speed)
 
             if is_human_playing:
+                agent.state(SCREEN_WIDTH, SCREEN_HEIGHT, snake, food)
                 snake.handle_keys(food)
             else:
                 perform_action(agent, snake, food, played_games, highlight)
