@@ -1,7 +1,7 @@
 import requests
 
-BOT_TOKEN = '1578057359:AAGOwHqDryIuNJMfOzxKXW8UDc0M-D73Fo8' # secret
-BOT_CHAT_ID = 613755449
+BOT_TOKEN = '' # secret
+BOT_CHAT_ID = 0
 
 
 def _send(message):
