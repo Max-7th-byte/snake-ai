@@ -48,7 +48,7 @@ class Agent(object):
 
 
     def load_model(self):
-        self._model.fit(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0]).reshape(1, self.input_neurons),
+        self._model.fit(np.array([0] * 24).reshape(1, self.input_neurons),
                         np.array([0., 0., 1., 0.]).reshape(1, 4), epochs=1, verbose=0)
         self._model.load_weights(self._weights_path)
 
@@ -115,7 +115,7 @@ class Agent(object):
             self_left_down
         ]
 
-        return state
+        return np.array(state)
 
 
     @staticmethod
