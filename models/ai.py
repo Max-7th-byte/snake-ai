@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
 
-from config import reward_for_away_from_food, reward_for_closer_to_food, GRID_SIZE
+from config import reward_for_away_from_food, reward_for_closer_to_food, GRID_SIZE, reward_for_eating, reward_for_dying
 
 
 class Agent(object):
@@ -78,84 +78,15 @@ class Agent(object):
     @staticmethod
     def state(width, height, snake, food):
 
-        food_x = food.position()[0]
-        food_y = food.position()[1]
 
-        snake_x = snake.head_pos()[0]
-        snake_y = height - snake.head_pos()[1]
-
-        food_right = food_x - snake_x if food_x - snake_x > 0 and food_y != snake_y else 0
-        food_up = snake_y - food_y if snake_y - food_y > 0 and food_x != snake_x else 0
-        food_left = snake_x - food_x if snake_x - food_x > 0 and food_y != snake_y else 0
-        food_down = food_y - snake_y if food_y - snake_y > 0 and food_x != snake_x else 0
-
-        border_right = width - snake_x
-        border_up = snake_y
-        border_left = snake_x
-        border_down = height - snake_y
-
-        self_right = 0
-        self_up = 0
-        self_left = 0
-        self_down = 0
-        x_right = x_left = x_up = x_down = snake_x
-        y_right = y_left = y_up = y_down = snake_y
-        while Agent.in_bounds(x_right, x_left, x_up, x_down, y_right, y_left, y_up, y_down, width, height):
-
-            if Agent.in_bounds(x_right, y_right, width, height):
-                if self_right == 0 and (x_right, y_right) in snake.positions()[1:]:
-                    self_right = x_right - snake_x
-                x_right += GRID_SIZE
-
-            if Agent.in_bounds(x_left, y_left, width, height):
-                if self_left == 0 and (x_left, y_left) in snake.positions()[1:]:
-                    self_left = snake_x - x_left
-                x_left -= GRID_SIZE
-
-            if Agent.in_bounds(x_up, y_up, width, height):
-                if self_up == 0 and (x_up, y_up) in snake.positions()[1:]:
-                    self_up = snake_y - y_up
-                y_up -= GRID_SIZE
-
-            if Agent.in_bounds(x_down, y_down, width, height):
-                if self_down == 0 and (x_down, y_down) in snake.positions()[1:]:
-                    self_down = y_down - snake_y
-                y_down += GRID_SIZE
-
-
-        food_right_up = 0
-        border_right_up = 0
-        self_right_up = 0
-
-
-        food_left_up = 0
-        border_left_up = 0
-        self_left_up = 0
-
-        food_right_down = 0
-        border_right_down = 0
-        self_right_down = 0
-
-        food_left_down = 0
-        border_left_down = 0
-        self_left_down = 0
-
-        x_right_up = x_left_up = x_right_down = x_left_down = snake_x
-        y_right_up = y_left_up = y_right_down = y_left_down = snake_y
-        while Agent.in_bounds(x_right_up, x_left_up, x_right_down, x_left_down, y_right_up, y_left_up, y_right_down, y_left_down, width, height):
-
-            if Agent.in_bounds(x_right_up, y_right_up, width, height):
-                if food_right_up == 0 and (x_right_up, y_right_up) == food.position():
-                    pass
-
-            if Agent.in_bounds(x_left_up, y_left_up, width, height):
-                pass
-
-            if Agent.in_bounds(x_right_down, y_right_down, width, height):
-                pass
-
-            if Agent.in_bounds(x_left_down, y_left_down, width, height):
-                pass
+        food_right, border_right, self_right = Agent.look_direction((GRID_SIZE, 0), food, snake, height, width)
+        food_up, border_up, self_up = Agent.look_direction((0, -GRID_SIZE), food, snake, height, width)
+        food_left, border_left, self_left = Agent.look_direction((-GRID_SIZE, 0), food, snake, height, width)
+        food_down, border_down, self_down = Agent.look_direction((0, GRID_SIZE), food, snake, height, width)
+        food_right_up, border_right_up, self_right_up = Agent.look_direction((GRID_SIZE, -GRID_SIZE), food, snake, height, width)
+        food_left_up, border_left_up, self_left_up = Agent.look_direction((-GRID_SIZE, -GRID_SIZE), food, snake, height, width)
+        food_right_down, border_right_down, self_right_down = Agent.look_direction((GRID_SIZE, GRID_SIZE), food, snake, height, width)
+        food_left_down, border_left_down, self_left_down = Agent.look_direction((-GRID_SIZE, GRID_SIZE), food, snake, height, width)
 
         state = [
             food_right,
@@ -188,13 +119,37 @@ class Agent(object):
 
 
     @staticmethod
-    def in_bounds(x_right, x_left, x_up, x_down, y_right, y_left, y_up, y_down, width, height):
-        return Agent.in_bounds(x_right, y_right, width, height) or Agent.in_bounds(x_left, y_left, width, height) or \
-               Agent.in_bounds(x_up, y_up, width, height) or Agent.in_bounds(x_down, y_down, width, height)
+    def in_bounds(x, y, width, height):
+        return 0 <= x <= width and 0 <= y <= height
+
 
     @staticmethod
-    def in_bounds(x, y, width, height):
-        return 0 <= x <= width or 0 <= y <= height
+    def look_direction(direction, food, snake, height, width):
+        food_x = food.position()[0]
+        food_y = food.position()[1]
+
+        cur_x, cur_y = snake.head_pos()[0], snake.head_pos()[1]
+        cur_x += direction[0]
+        cur_y += direction[1]
+        distance = 1
+        food_dir = snake_dir = 0
+        while Agent.in_bounds(cur_x, cur_y, width, height):
+
+            if (food_dir == 0) and (cur_x == food_x and cur_y == food_y):
+                food_dir = 1
+
+            if (snake_dir == 0) and ((cur_x, cur_y) in snake.positions()[1:]):
+                snake_dir = 1/distance
+
+            cur_x += direction[0]
+            cur_y += direction[1]
+            distance += 1
+
+        wall_dir = 1/distance
+
+        return food_dir, wall_dir, snake_dir
+
+
 
     @staticmethod
     def reward(snake, food, height, prev_pos):
@@ -234,9 +189,9 @@ class Agent(object):
     def initial_reward(snake):
         reward = 0
         if snake.eaten():
-            reward = 50
+            reward = reward_for_eating
         if snake.done():
-            reward = -100
+            reward = reward_for_dying
         return reward
 
 

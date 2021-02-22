@@ -13,9 +13,9 @@ RIGHT = (1, 0)
 map_direction = {0: UP, 1: LEFT, 2: RIGHT, 3: DOWN}
 
 replay_best_plays = False
-speed = 500
-is_human_playing = False
-training = True
+speed = 1
+is_human_playing = True
+training = False
 first_time_training = True
 display = True
 load = False
@@ -28,8 +28,10 @@ gamma = 0.9
 neurons_each_layer = (24, 16)
 batch_size = 1000
 
-reward_for_closer_to_food = 10
-reward_for_away_from_food = -5
+reward_for_closer_to_food = 5
+reward_for_away_from_food = -3
+reward_for_eating = 20
+reward_for_dying = -20
 
 snake_color = (255, 255, 255)
 food_color = (255, 0, 0)

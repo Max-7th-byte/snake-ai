@@ -1,5 +1,6 @@
 import sys
 import random
+import time
 
 import pygame as p
 
@@ -120,6 +121,8 @@ class Snake:
                     self.turn(RIGHT, food)
                 elif event.key == p.K_a:
                     self.turn(LEFT, food)
+                elif event.key == p.K_j:
+                    time.sleep(10)
 
         if not executed_turn:
             self.turn(self._direction, food)
