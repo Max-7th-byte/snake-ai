@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
 
-from config import reward_for_away_from_food, reward_for_closer_to_food, GRID_SIZE, reward_for_eating, reward_for_dying
+from config import GRID_SIZE, reward_for_eating, reward_for_dying
 
 
 class Agent(object):
@@ -120,7 +120,7 @@ class Agent(object):
 
     @staticmethod
     def in_bounds(x, y, width, height):
-        return 0 <= x <= width and 0 <= y <= height
+        return 0 <= x < width and 0 <= y < height
 
 
     @staticmethod
@@ -175,15 +175,37 @@ class Agent(object):
 
         c_next = np.sqrt(np.square(x) + np.square(y))
 
-        action_value = c_prev - c_next
+        action_value = (c_prev - c_next)/10
         if action_value > 0:
-            action_value = reward_for_closer_to_food
-        else:
-            action_value = reward_for_away_from_food
-
+            action_value = 0
         reward += action_value
         return reward
 
+    @staticmethod
+    def rew(food, prev_pos, snake, prev_state):
+
+        reward = Agent.initial_reward(snake)
+
+        x_food = food.position()[0]
+        y_food = food.position()[1]
+
+        x_prev = prev_pos[0]
+        y_prev = prev_pos[1]
+
+        x_next = snake.head_pos()[0]
+        y_next = snake.head_pos()[1]
+
+        diff_x = np.abs(x_food - x_prev)
+        diff_y = np.abs(y_food - y_prev)
+
+        if 1 in prev_state[0:8]:
+            next_diff_x = np.abs(x_food - x_next)
+            next_diff_y = np.abs(y_food - y_next)
+            if next_diff_x < diff_x or next_diff_y < diff_y:
+                reward += 5
+            else:
+                reward -= 5
+        return reward
 
     @staticmethod
     def initial_reward(snake):

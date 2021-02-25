@@ -1,6 +1,6 @@
 import requests
 
-BOT_TOKEN = '1578057359:AAGOwHqDryIuNJMfOzxKXW8UDc0M-D73Fo8' # secret
+BOT_TOKEN = '1643092883:AAG3nSAsTzxQrqInT7gveVMI-lw4MTMH0Lg' # secret
 BOT_CHAT_ID = 613755449
 
 
