@@ -13,90 +13,100 @@ from views.game import Snake, Food, SCREEN_WIDTH, SCREEN_HEIGHT, map_direction
 
 def main():
     if not replay_best_plays:
-        if display:
-            display_main()
-        else:
-            non_display_main()
+        current_generation = 0
+        snake = None
+        scores = []
+        highlight = Highlight()
+
+        while current_generation < NO_OF_GEN:
+            agents = []
+            snakes = []
+            no_snake = 0
+            while no_snake < POPULATION:
+                if display:
+                    agent, _snake = display_train(highlight, snake, current_generation, no_snake)
+                else:
+                    agent, _snake = non_display_train(highlight, snake, current_generation, no_snake)
+                agents.append(agent)
+                snakes.append(_snake)
+                no_snake += 1
+            snake = pick_best(snakes)
+            current_generation += 1
+            scores.append([snake.score() for snake in snakes])
+        final_score(snake, scores, current_generation * POPULATION)
     else:
         highlights = get_highlights()
         for h in highlights:
             h.replay()
 
 
-def display_main():
+def display_train(highlight, agent=None, current_generation=0, no_snake=0):
     clock, screen, font = initialize_display(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    agent = Agent(weights_path, load, learning_rate, gamma, neurons_each_layer, batch_size)
-    played_games = 0
-    scores = list()
+    if agent is None:
+        agent = Agent(weights_path, load, learning_rate, gamma, neurons_each_layer, batch_size)
+
+    surface, game = draw_surface(screen, False)
+
+    snake = Snake(snake_color, game)
+    food = Food(food_color, snake)
+    highlight.remember(deepcopy(food))
+
+    while not snake.done():
+        clock.tick(speed)
+
+        if is_human_playing:
+            snake.handle_keys(food)
+        else:
+            perform_action(agent, snake, food, highlight)
+        update_display(snake, food, surface, screen, font)
+
+    score = update_parameters(agent, snake, highlight)
+    print_result(current_generation, no_snake, score)
+
+    snake.reset()
+    pygame.display.update()
+    save(agent)
+
+    return agent, snake
+
+
+def non_display_train(highlight, agent=None, current_generation=0, no_snake=0):
+
+    if agent is None:
+        agent = Agent(weights_path, load, learning_rate, gamma, neurons_each_layer, batch_size)
+
+    snake = Snake(snake_color, game=None)
+    food = Food(food_color, snake)
+    highlight.remember(deepcopy(food))
+
+    while not snake.done():
+        perform_action(agent, snake, food, highlight)
+
+    score = update_parameters(agent, snake, highlight)
+    print_result(current_generation, no_snake, score)
+
+    save(agent)
+    snake.reset()
+
+    return agent
+
+
+def pick_best(snakes):
+    snake = None
     record = 0
-
-    while played_games < number_of_games:
-        surface, game = draw_surface(screen, False)
-        highlight = Highlight()
-
-        snake = Snake(snake_color, game)
-        food = Food(food_color, snake)
-        highlight.remember(deepcopy(food))
-
-        while not snake.done():
-            clock.tick(speed)
-
-            if is_human_playing:
-                snake.handle_keys(food)
-            else:
-                perform_action(agent, snake, food, played_games, highlight)
-            update_display(snake, food, surface, screen, font)
-
-        played_games, score, record = update_parameters(agent, played_games, snake,
-                                                        scores, record, highlight)
-        print_result(played_games, score)
-
-        snake.reset()
-        pygame.display.update()
-        save(agent, played_games, scores, record)
-
-    save(agent, played_games, scores, record)
-    final_score(scores, record, played_games)
+    for s in snakes:
+        if s.score() > record:
+            snake = s
+            record = s.score()
+    return snake
 
 
-
-def non_display_main():
-    agent = Agent(weights_path, load, learning_rate, gamma, neurons_each_layer, batch_size)
-    played_games = 0
-    scores = list()
-    record = 0
-
-    while played_games < number_of_games:
-
-        highlight = Highlight()
-        snake = Snake(snake_color, game=None)
-        food = Food(food_color, snake)
-        highlight.remember(deepcopy(food))
-
-        while not snake.done():
-            perform_action(agent, snake, food, played_games, highlight)
-
-        played_games, score, record = update_parameters(agent, played_games, snake,
-                                                        scores, record, highlight)
-        print_result(played_games, score)
-
-        snake.reset()
-        save(agent, played_games, scores, record)
-
-    save(agent, played_games, scores, record)
-    final_score(scores, record, played_games)
-
-
-def perform_action(agent, snake, food, played_games, highlight):
-    if first_time_training:
-        epsilon = pick_epsilon(played_games, number_of_games)
-    else:
-        epsilon = 0.00
+def perform_action(agent, snake, food, highlight):
 
     prev_state = agent.state(SCREEN_WIDTH, SCREEN_HEIGHT, snake, food)
     prev_pos = snake.head_pos()
-    action = pick_action(epsilon, prev_state, agent)
+    action = pick_action(prev_state, agent)
     direct, f = direction(action), deepcopy(food)
     snake.turn(direction(action), food)
     highlight.remember((direct, f, food.position()))
@@ -113,12 +123,10 @@ def pick_epsilon(played_games, no_of_games):
     return epsilon
 
 
-def pick_action(epsilon, prev_state, agent):
-    if random.uniform(0, 1) < epsilon:
-        action = to_categorical(random.randint(0, 3), num_classes=4)
-    else:
-        prediction = agent.get_model().predict(prev_state.reshape(1, agent.input_neurons))
-        action = to_categorical(np.argmax(prediction[0]), num_classes=4)
+def pick_action(prev_state, agent):
+
+    prediction = agent.get_model().predict(prev_state.reshape(1, agent.input_neurons))
+    action = to_categorical(np.argmax(prediction[0]), num_classes=4)
     return action
 
 
@@ -133,8 +141,8 @@ def short_train(agent, snake, food, action, prev_pos, prev_state):
     agent.remember((prev_state, action, reward, new_state, snake.done))
 
 
-def print_result(played_games, score):
-    print(f'Game: {played_games}\t\tScore {score}')
+def print_result(current_generation, no_snake, score):
+    print(f'Generation: {current_generation}\t\tSnake: {no_snake}\t\tScore {score}')
 
 
 def prepare_info(scores, record, played_games):
@@ -147,38 +155,27 @@ def prepare_info(scores, record, played_games):
     return text_report
 
 
-def update_parameters(agent, played_games, snake, scores, record, highlight):
+def update_parameters(agent, snake, highlight):
     if training:
         agent.long_train(agent.memory())
-    played_games += 1
     score = snake.length() - 1
-    scores.append(score)
-
-    if score > record:
-        record = score
     if score >= highlight_score_lower_limit:
         add(highlight)
 
 
 
-    return played_games, score, record
+    return score
 
 
-def save(agent, played_games, scores, record):
-    if played_games % save_period == 0 and training:
-        agent.get_model().save_weights(weights_path)
-        print(f'Model saved at {played_games} games')
-
-        # report to telegram (able to turn it off)
-        report(prepare_info(scores, record, played_games))
-        remember_highlights()
+def save(agent):
+    agent.get_model().save_weights(weights_path)
 
 
-def final_score(scores, record, played_games):
-    print(f'Highest score: {record}\t\t\t', end='')
+def final_score(snake, scores, played_games):
+    print(f'Highest score: {snake.score()}\t\t\t', end='')
     print(f'Mean: {np.mean(np.array(scores))}\t\tStd: {np.std(np.array(scores))}')
-    report(f'Finished training for {played_games}\n'
-           f'Highest score: {record}\n'
+    report(f'Finished training for {played_games} games\n'
+           f'Highest score: {snake.score()}\n'
            f'Mean: {np.mean(np.array(scores))}\nStd: {np.std(np.array(scores))}')
 
 

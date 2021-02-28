@@ -38,3 +38,6 @@ font_size = 30
 
 highlight_score_lower_limit = 40
 highlights_path = '/home/max/IdeaProjects/snake_evolution_refactored_1/models/highlights/highlights.pkl'
+
+NO_OF_GEN = 100
+POPULATION = 100

@@ -46,7 +46,7 @@ class Agent(object):
 
 
     def load_model(self):
-        self._model.fit(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0]).reshape(1, self.input_neurons),
+        self._model.fit(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]).reshape(1, self.input_neurons),
                         np.array([0., 0., 1., 0.]).reshape(1, 4), epochs=1, verbose=0)
         self._model.load_weights(self._weights_path)
 
@@ -72,6 +72,7 @@ class Agent(object):
             minibatches = memory
         for prev_state, action, reward, new_state, done in minibatches:
             self.train(prev_state, action, reward, new_state, done)
+
 
     @staticmethod
     def state(width, height, snake, food):
@@ -180,6 +181,7 @@ class Agent(object):
 
     def memory(self):
         return self._memory
+
 
     def get_model(self):
         return self._model
