@@ -129,12 +129,12 @@ class Snake:
 
 
     def reset(self):
-        self.length = 1
-        self.positions = [((SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2))]
-        self.direction = random.choice([UP, DOWN, LEFT, RIGHT])
-        self.score = 0
-        self.done = False
-        self.eaten = False
+        self._length = 1
+        self._positions = [((SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2))]
+        self._direction = random.choice([UP, DOWN, LEFT, RIGHT])
+        self._score = 0
+        self._done = False
+        self._eaten = False
 
 
     def head_pos(self):

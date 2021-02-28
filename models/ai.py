@@ -18,7 +18,7 @@ class Agent(object):
                  gamma=0.9,
                  neurons_each_layer=(12, 50, 300, 50),
                  batch_size=1000):
-
+        print(load)
         self.input_neurons = neurons_each_layer[0]
         self._learning_rate = learning_rate
         self._gamma = gamma
@@ -28,6 +28,7 @@ class Agent(object):
 
         self._model = self.model(Adam(learning_rate), neurons_each_layer)
         if load:
+            print(weights_path)
             self.load_model()
 
 

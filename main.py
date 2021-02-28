@@ -1,11 +1,14 @@
 import random
 from copy import deepcopy
+import threading
+import os
 
 import numpy as np
 from tensorflow.keras.utils import to_categorical
 
 from models.ai import Agent
 from views.display import *
+import config
 from models.highlights import Highlight, add, get_highlights, remember_highlights
 from models.telegram.telegram import report
 from views.game import Snake, Food, SCREEN_WIDTH, SCREEN_HEIGHT, map_direction
@@ -15,6 +18,7 @@ def main():
     if not replay_best_plays:
         current_generation = 0
         snake = None
+        agent = None
         scores = []
         highlight = Highlight()
 
@@ -23,24 +27,45 @@ def main():
             snakes = []
             no_snake = 0
             while no_snake < POPULATION:
+                weights_path = f'/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/tmp/weights{no_snake}.h5'
                 if display:
-                    agent, _snake = display_train(highlight, snake, current_generation, no_snake)
+                    agent, _snake = display_train(highlight, agent, current_generation, no_snake, weights_path)
                 else:
-                    agent, _snake = non_display_train(highlight, snake, current_generation, no_snake)
+                    agent, _snake = non_display_train(highlight, agent, current_generation, no_snake, weights_path)
                 agents.append(agent)
                 snakes.append(_snake)
                 no_snake += 1
-            snake = pick_best(snakes)
+            ind, snake, agent = pick_best(snakes, agents)
+            config.load = True
+
+            stream = open(f'/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/tmp/weights{ind}.h5', 'rb')
+            for i, file_path in enumerate(os.listdir('/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/tmp')):
+                with open('/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/tmp/' + file_path, 'wb') as f:
+                    f.write(stream.read())
+            stream.close()
             current_generation += 1
             scores.append([snake.score() for snake in snakes])
         final_score(snake, scores, current_generation * POPULATION)
+        remember_highlights()
     else:
         highlights = get_highlights()
         for h in highlights:
+            print('H')
             h.replay()
 
 
-def display_train(highlight, agent=None, current_generation=0, no_snake=0):
+def train(highlight, snake, current_generation, no_snake, agents, snakes, weights_path):
+    if display:
+        agent, _snake = display_train(highlight, snake, current_generation, no_snake, weights_path)
+    else:
+        agent, _snake = non_display_train(highlight, snake, current_generation, no_snake, weights_path)
+    agents.append(agent)
+    snakes.append(_snake)
+    no_snake += 1
+
+
+def display_train(highlight, agent=None, current_generation=0, no_snake=0,
+                  weights_path='/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/weights0.h5'):
     clock, screen, font = initialize_display(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     if agent is None:
@@ -66,12 +91,13 @@ def display_train(highlight, agent=None, current_generation=0, no_snake=0):
 
     snake.reset()
     pygame.display.update()
-    save(agent)
+    save(agent, weights_path)
 
     return agent, snake
 
 
-def non_display_train(highlight, agent=None, current_generation=0, no_snake=0):
+def non_display_train(highlight, agent=None, current_generation=0, no_snake=0,
+                      weights_path='/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/weights0.h5'):
 
     if agent is None:
         agent = Agent(weights_path, load, learning_rate, gamma, neurons_each_layer, batch_size)
@@ -86,20 +112,26 @@ def non_display_train(highlight, agent=None, current_generation=0, no_snake=0):
     score = update_parameters(agent, snake, highlight)
     print_result(current_generation, no_snake, score)
 
-    save(agent)
+    save(agent, weights_path)
     snake.reset()
 
-    return agent
+    return agent, snake
 
 
-def pick_best(snakes):
+def pick_best(snakes, agents):
     snake = None
+    agent = None
     record = 0
-    for s in snakes:
-        if s.score() > record:
-            snake = s
-            record = s.score()
-    return snake
+    ind = 0
+    i = 0
+    while i < len(snakes):
+        if snakes[i].score() >= record:
+            snake = snakes[i]
+            record = snakes[i].score()
+            ind = i
+            agent = agents[i]
+        i += 1
+    return ind, snake, agent
 
 
 def perform_action(agent, snake, food, highlight):
@@ -167,7 +199,7 @@ def update_parameters(agent, snake, highlight):
     return score
 
 
-def save(agent):
+def save(agent, weights_path):
     agent.get_model().save_weights(weights_path)
 
 
