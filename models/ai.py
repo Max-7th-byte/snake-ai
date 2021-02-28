@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
 
-from config import GRID_SIZE, reward_for_eating, reward_for_dying
+from config import reward_for_eating, reward_for_dying
 
 
 class Agent(object):
@@ -48,7 +48,7 @@ class Agent(object):
 
 
     def load_model(self):
-        self._model.fit(np.array([0] * 24).reshape(1, self.input_neurons),
+        self._model.fit(np.array([0] * 12).reshape(1, self.input_neurons),
                         np.array([0., 0., 1., 0.]).reshape(1, 4), epochs=1, verbose=0)
         self._model.load_weights(self._weights_path)
 
@@ -79,43 +79,48 @@ class Agent(object):
     def state(width, height, snake, food):
 
 
-        food_right, border_right, self_right = Agent.look_direction((GRID_SIZE, 0), food, snake, height, width)
-        food_up, border_up, self_up = Agent.look_direction((0, -GRID_SIZE), food, snake, height, width)
-        food_left, border_left, self_left = Agent.look_direction((-GRID_SIZE, 0), food, snake, height, width)
-        food_down, border_down, self_down = Agent.look_direction((0, GRID_SIZE), food, snake, height, width)
-        food_right_up, border_right_up, self_right_up = Agent.look_direction((GRID_SIZE, -GRID_SIZE), food, snake, height, width)
-        food_left_up, border_left_up, self_left_up = Agent.look_direction((-GRID_SIZE, -GRID_SIZE), food, snake, height, width)
-        food_right_down, border_right_down, self_right_down = Agent.look_direction((GRID_SIZE, GRID_SIZE), food, snake, height, width)
-        food_left_down, border_left_down, self_left_down = Agent.look_direction((-GRID_SIZE, GRID_SIZE), food, snake, height, width)
+        danger_left = (snake.head_pos()[0] <= 0) or \
+                      ((snake.head_pos()[0] - 20, snake.head_pos()[1]) in snake.positions())
+
+        danger_front = (snake.head_pos()[1] <= 0) or \
+                       ((snake.head_pos()[0], snake.head_pos()[1] - 20) in snake.positions())
+
+        danger_right = (snake.head_pos()[0] >= width - 20) or \
+                       ((snake.head_pos()[0] + 20, snake.head_pos()[1]) in snake.positions())
+
+        danger_down = (snake.head_pos()[1] >= height - 20) or \
+                      ((snake.head_pos()[0], snake.head_pos()[1] + 20) in snake.positions())
+
+        food_left = food.position()[0] < snake.head_pos()[0]
+
+        food_right = food.position()[0] > snake.head_pos()[0]
+
+        food_down = food.position()[1] > snake.head_pos()[1]
+
+        food_front = food.position()[1] < snake.head_pos()[1]
 
         state = [
-            food_right,
-            food_up,
+            danger_left,
+            danger_right,
+            danger_front,
+            danger_down,
+            snake.moving_left,
+            snake.moving_right,
+            snake.moving_down,
+            snake.moving_up,
             food_left,
+            food_right,
             food_down,
-            food_right_up,
-            food_left_up,
-            food_right_down,
-            food_left_down,
-            border_right,
-            border_up,
-            border_left,
-            border_down,
-            border_right_up,
-            border_left_up,
-            border_right_down,
-            border_left_down,
-            self_right,
-            self_up,
-            self_left,
-            self_down,
-            self_right_up,
-            self_left_up,
-            self_right_down,
-            self_left_down
+            food_front
         ]
 
-        return np.array(state)
+        for i in state:
+            if state[i]:
+                state[i] = 1
+            else:
+                state[i] = 0
+
+        return np.asarray(state)
 
 
     @staticmethod
@@ -175,11 +180,10 @@ class Agent(object):
 
         c_next = np.sqrt(np.square(x) + np.square(y))
 
-        action_value = (c_prev - c_next)/10
-        if action_value > 0:
-            action_value = 0
+        action_value = c_prev - c_next
+
         reward += action_value
-        return reward
+        return reward/2
 
     @staticmethod
     def rew(food, prev_pos, snake, prev_state):

@@ -22,14 +22,14 @@ load = True
 number_of_games = 500
 save_period = 20
 
-weights_path = '/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/weights7.h5'
+weights_path = '/home/max/IdeaProjects/snake_evolution_refactored_1/models/weights/weights.h5'
 learning_rate = 0.0005
 gamma = 0.9
-neurons_each_layer = (24, 50, 300, 50)
+neurons_each_layer = (12, 50, 300, 50)
 batch_size = 1000
 
-reward_for_eating = 20
-reward_for_dying = -20
+reward_for_eating = 50
+reward_for_dying = -100
 
 snake_color = (255, 255, 255)
 food_color = (255, 0, 0)

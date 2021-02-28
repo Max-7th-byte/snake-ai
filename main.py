@@ -40,7 +40,6 @@ def display_main():
         food = Food(food_color, snake)
         highlight.remember(deepcopy(food))
 
-        initial_time = time.time()
         while not snake.done():
             clock.tick(speed)
 
@@ -48,9 +47,6 @@ def display_main():
                 agent.state(SCREEN_WIDTH, SCREEN_HEIGHT, snake, food)
                 snake.handle_keys(food)
             else:
-                current_time = time.time()
-                if current_time - initial_time > 500:
-                    break
                 perform_action(agent, snake, food, played_games, highlight)
             update_display(snake, food, surface, screen, font)
 
@@ -80,11 +76,7 @@ def non_display_main():
         food = Food(food_color, snake)
         highlight.remember(deepcopy(food))
 
-        initial_time = time.time()
         while not snake.done():
-            current_time = time.time()
-            if current_time - initial_time > 300:
-                break
             perform_action(agent, snake, food, played_games, highlight)
 
         played_games, score, record = update_parameters(agent, played_games, snake,
@@ -139,7 +131,7 @@ def direction(action):
 
 def short_train(agent, snake, food, action, prev_pos, prev_state):
     new_state = agent.state(SCREEN_WIDTH, SCREEN_HEIGHT, snake, food)
-    reward = agent.rew(food, prev_pos, snake, prev_state)
+    reward = agent.reward(snake, food, SCREEN_HEIGHT, prev_pos)
     agent.train(prev_state, action, reward, new_state, snake.done)
     agent.remember((prev_state, action, reward, new_state, snake.done))
 
